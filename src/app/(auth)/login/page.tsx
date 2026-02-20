@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
-import { currentUser, currentCompany } from '@/data/mock-data';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -21,22 +20,59 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    // Mock login
-    setTimeout(() => {
-      if (email === 'ceo@forlena.com' && password === '1234') {
-        login(currentUser, currentCompany);
-        router.push('/dashboard');
-      } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || '로그인에 실패했습니다.');
+        return;
       }
+
+      localStorage.setItem('token', data.data.token);
+
+      login(
+        {
+          id: data.data.user.id,
+          name: data.data.user.name,
+          email: data.data.user.email,
+          role: data.data.user.role,
+          companyId: data.data.user.companyId,
+          departmentId: data.data.user.departmentId || '',
+          profileImageUrl: '',
+          status: 'active',
+        },
+        {
+          id: data.data.user.companyId,
+          name: '포르레나',
+          businessNumber: '123-45-67890',
+          representative: '김대표',
+          address: '서울시 강남구',
+          phone: '02-1234-5678',
+          industry: 'IT/소프트웨어',
+          employeeCount: 8,
+          plan: 'starter',
+          aiTokenLimit: 100000,
+          storageLimitGb: 10,
+        }
+      );
+
+      router.push('/dashboard');
+    } catch {
+      setError('서버 연결에 실패했습니다.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
     <div className="w-full max-w-md">
       <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🌶️</div>
           <h1 className="text-2xl font-bold text-gray-900">후추 <span className="text-sm font-normal text-gray-400">Huchu</span></h1>
@@ -46,40 +82,19 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-              placeholder="이메일 주소를 입력하세요"
-              required
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" placeholder="이메일 주소를 입력하세요" required />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
             <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm pr-10"
-                placeholder="비밀번호를 입력하세요"
-                required
-              />
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm pr-10" placeholder="비밀번호를 입력하세요" required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-
           {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
+          <button type="submit" disabled={loading} className="w-full py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> 로그인 중...</> : '로그인'}
           </button>
         </form>
@@ -104,7 +119,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Demo info */}
         <div className="mt-6 p-3 bg-amber-50 rounded-xl border border-amber-200">
           <p className="text-xs text-amber-700 font-medium">데모 계정</p>
           <p className="text-xs text-amber-600 mt-0.5">이메일: ceo@forlena.com / 비밀번호: 1234</p>

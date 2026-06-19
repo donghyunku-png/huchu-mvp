@@ -25,7 +25,7 @@ export async function GET() {
       .where(eq(companies.id, user.companyId))
       .limit(1);
 
-    const activeModules = (companyData[0]?.activeModules as string[]) || ['M01', 'M02', 'M03', 'M04', 'M12', 'M15'];
+    const activeModules = (companyData[0]?.activeModules as string[]) || user.activeModules || ['M01', 'M02', 'M03', 'M04', 'M12', 'M15'];
 
     return success({
       user: {
@@ -43,6 +43,26 @@ export async function GET() {
       activeModules,
     });
   } catch (err) {
+    const user = await getCurrentUser();
+    if (user) {
+      console.warn('GET /api/auth/me DB unavailable; returning signed session data.');
+      return success({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          positionLevel: user.positionLevel,
+          companyId: user.companyId,
+          departmentId: user.departmentId,
+          profileImageUrl: user.profileImageUrl,
+        },
+        dashboardWidgets: getDashboardWidgets(user.role),
+        navigationItems: getNavigationItems(user.role, user.activeModules),
+        activeModules: user.activeModules,
+      });
+    }
+
     console.error('GET /api/auth/me error:', err);
     return error('서버 오류가 발생했습니다.', 500);
   }

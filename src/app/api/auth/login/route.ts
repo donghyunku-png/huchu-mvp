@@ -68,6 +68,9 @@ export async function POST(request: NextRequest) {
     }
 
     const demoUser = getDemoUser(email, password);
+    if (demoUser) {
+      return createLoginResponse(demoUser);
+    }
 
     // DB에서 사용자 조회 (회사 정보 포함)
     const userRows = await db
@@ -92,10 +95,6 @@ export async function POST(request: NextRequest) {
     const user = userRows[0];
 
     if (!user) {
-      if (demoUser) {
-        return createLoginResponse(demoUser);
-      }
-
       return error('이메일 또는 비밀번호가 올바르지 않습니다.', 401);
     }
 

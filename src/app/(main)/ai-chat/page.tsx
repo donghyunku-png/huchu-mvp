@@ -1,9 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { mockAIConversations, mockAIMessages } from '@/data/mock-data';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Bot, Send, Plus, Search, Trash2, Clock, Sparkles, FileText, Calculator, Calendar, Users } from 'lucide-react';
+
+interface Message {
+  id: string;
+  conversationId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  model?: string;
+  tokensUsed?: number;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
 
 const quickActions = [
   { icon: Calendar, label: '내일 일정 확인', color: 'bg-blue-50 text-blue-600' },
@@ -13,16 +27,96 @@ const quickActions = [
 ];
 
 export default function AIChatPage() {
+  // Local state for conversations and messages (no real AI API)
+  const [conversations, setConversations] = useState<Conversation[]>([
+    {
+      id: 'ai-conv-1',
+      title: '프로젝트 진행 상황',
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: 'ai-conv-2',
+      title: '회의 일정 조율',
+      updatedAt: new Date(Date.now() - 86400000).toISOString()
+    }
+  ]);
+
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'msg-1',
+      conversationId: 'ai-conv-1',
+      role: 'assistant',
+      content: '안녕하세요! 무엇을 도와드릴까요?',
+      model: 'GPT-4o',
+      tokensUsed: 12
+    }
+  ]);
+
   const [selectedConv, setSelectedConv] = useState<string>('ai-conv-1');
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messages = mockAIMessages.filter(m => m.conversationId === selectedConv);
-  const selectedConvData = mockAIConversations.find(c => c.id === selectedConv);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const handleSend = () => {
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const conversationMessages = messages.filter(m => m.conversationId === selectedConv);
+  const selectedConvData = conversations.find(c => c.id === selectedConv);
+
+  const handleSend = async () => {
     if (!message.trim()) return;
+
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      conversationId: selectedConv,
+      role: 'user',
+      content: message
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setMessage('');
+    setIsThinking(true);
+
+    // Simulate AI response after 1 second
+    setTimeout(() => {
+      const aiMessage: Message = {
+        id: `msg-${Date.now() + 1}`,
+        conversationId: selectedConv,
+        role: 'assistant',
+        content: '이 기능은 현재 로컬 상태로 작동하고 있습니다. 실제 AI 응답이 표시됩니다.',
+        model: 'GPT-4o',
+        tokensUsed: 45
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      setIsThinking(false);
+    }, 1000);
+  };
+
+  const handleCreateConversation = () => {
+    const newConv: Conversation = {
+      id: `ai-conv-${Date.now()}`,
+      title: '새로운 대화',
+      updatedAt: new Date().toISOString()
+    };
+    setConversations(prev => [newConv, ...prev]);
+    setSelectedConv(newConv.id);
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    setConversations(prev => prev.filter(c => c.id !== id));
+    if (selectedConv === id) {
+      setSelectedConv(conversations[0]?.id || '');
+    }
+  };
+
+  const handleQuickAction = (label: string) => {
+    setMessage(label);
   };
 
   return (
@@ -32,7 +126,12 @@ export default function AIChatPage() {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">🤖 AI 채팅</h2>
-            <button className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600"><Plus className="w-4 h-4" /></button>
+            <button
+              onClick={handleCreateConversation}
+              className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -47,7 +146,7 @@ export default function AIChatPage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="px-3 py-2 text-xs font-semibold text-gray-400">오늘</div>
-          {mockAIConversations.map(conv => (
+          {conversations.map(conv => (
             <button
               key={conv.id}
               onClick={() => setSelectedConv(conv.id)}
@@ -69,7 +168,15 @@ export default function AIChatPage() {
                   {new Date(conv.updatedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                 </p>
               </div>
-              <button className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-400"><Trash2 className="w-3 h-3" /></button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteConversation(conv.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-400"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
             </button>
           ))}
         </div>
@@ -95,7 +202,7 @@ export default function AIChatPage() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6">
-          {messages.length === 0 ? (
+          {conversationMessages.length === 0 ? (
             <div className="max-w-2xl mx-auto text-center py-16">
               <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
                 <Sparkles className="w-10 h-10 text-white" />
@@ -104,7 +211,11 @@ export default function AIChatPage() {
               <p className="text-gray-500 mb-8">업무에 관해 무엇이든 물어보세요. 자연어로 업무를 처리할 수 있습니다.</p>
               <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
                 {quickActions.map((action, i) => (
-                  <button key={i} className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-sm transition-all text-left">
+                  <button
+                    key={i}
+                    onClick={() => handleQuickAction(action.label)}
+                    className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-sm transition-all text-left"
+                  >
                     <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', action.color)}>
                       <action.icon className="w-4 h-4" />
                     </div>
@@ -115,7 +226,7 @@ export default function AIChatPage() {
             </div>
           ) : (
             <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map(msg => (
+              {conversationMessages.map(msg => (
                 <div key={msg.id} className={cn('flex gap-4', msg.role === 'user' && 'justify-end')}>
                   {msg.role === 'assistant' && (
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -143,6 +254,21 @@ export default function AIChatPage() {
                   )}
                 </div>
               ))}
+              {isThinking && (
+                <div className="flex gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="bg-white text-gray-800 rounded-bl-md rounded-2xl px-5 py-3.5 shadow-sm border border-gray-100">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
@@ -168,7 +294,8 @@ export default function AIChatPage() {
               </div>
               <button
                 onClick={handleSend}
-                className="p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shadow-sm"
+                disabled={isThinking}
+                className="p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shadow-sm disabled:opacity-50"
               >
                 <Send className="w-5 h-5" />
               </button>

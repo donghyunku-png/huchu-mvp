@@ -10,6 +10,8 @@ import { db } from '@/db';
 import { users, companies } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

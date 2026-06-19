@@ -6,6 +6,8 @@ import { db } from '@/db';
 import { departments, users } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 // 부서 트리 구조 생성
 function buildDepartmentTree(deptList: Record<string, unknown>[]) {
   const tree = deptList

@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { clients, users } from '@/db/schema';
 import { eq, and, type SQL } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return withScopedAccess('crm', 'read', async (user, scope) => {
     try {

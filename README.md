@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Huchu MVP
 
-## Getting Started
+Huchu is an AI-first work platform for Korean small businesses. This MVP follows the current business-plan scope: AI chat hub, HR/attendance, vacation approval, organization view, internal messenger, schedule/tasks, bookmarks, settings, integrations, and a lightweight CRM extension.
 
-First, run the development server:
+## Current Scope
+
+- Core MVP: AI chat hub, HR/attendance, vacation, organization, messenger, schedule/tasks
+- Demo extension: CRM customers and pipeline, integrations marketplace, bookmarks
+- Stack: Next.js 14, React 18, TypeScript, Tailwind CSS, Drizzle ORM, Supabase PostgreSQL
+- Deployment target: Vercel + Supabase
+
+## Local Setup
+
+```bash
+npm ci
+cp .env.example .env.local
+```
+
+Set the real values in `.env.local`:
+
+```bash
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+JWT_SECRET="$(openssl rand -base64 32)"
+```
+
+Run the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Apply these files in order in the Supabase SQL editor:
 
-## Learn More
+1. `src/db/migrations/001_init.sql`
+2. `src/db/migrations/002_seed_demo.sql`
 
-To learn more about Next.js, take a look at the following resources:
+Demo accounts seeded by `002_seed_demo.sql`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Role | Email | Password |
+| --- | --- | --- |
+| CEO | `ceo@forlena.com` | `1234` |
+| Manager | `manager@forlena.com` | `1234` |
+| Team Lead | `lead@forlena.com` | `1234` |
+| Staff | `staff@forlena.com` | `1234` |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Change demo passwords before production use.
 
-## Deploy on Vercel
+## Verification
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run lint
+npm run build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The API routes are explicitly dynamic because they read auth/session cookies and database-backed company state.
+
+## Deployment Notes
+
+- Push this repo to `donghyunku-png/huchu-mvp`.
+- Configure `DATABASE_URL` and `JWT_SECRET` in Vercel project settings.
+- Ensure the Supabase hostname resolves and the database has both migration files applied.
+- Do not commit `.env.local`, `.next`, `node_modules`, `.vercel`, exported zip contents, or generated deployment artifacts.

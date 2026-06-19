@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { users, departments, attendances, vacationBalances, tasks } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return withAuth(async (user) => {
     try {

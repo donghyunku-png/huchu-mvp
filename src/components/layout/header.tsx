@@ -3,17 +3,57 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUIStore } from '@/stores/ui-store';
-import { mockNotifications } from '@/data/mock-data';
-import { Bell, Search, Bot, MessageSquare, LogOut, User, ChevronDown } from 'lucide-react';
+import { useApi, useMutation } from '@/hooks/useApi';
+import { useToastStore } from '@/stores/toast-store';
+import { Bell, Search, Bot, MessageSquare, LogOut, User, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface NotificationData {
+  notifications: Array<{
+    id: string;
+    title: string;
+    content: string;
+    body?: string;
+    type: string;
+    isRead: boolean;
+    createdAt: string;
+    link?: string;
+  }>;
+  stats: {
+    total: number;
+    unread: number;
+  };
+}
 
 export function Header() {
   const { user, logout } = useAuthStore();
   const { toggleMessenger, toggleAiChat } = useUIStore();
+  const addToast = useToastStore(s => s.addToast);
+  const { data: notifData, loading: notifLoading } = useApi<NotificationData>('/api/notifications');
+  const { mutate: markAsRead } = useMutation('/api/notifications/{id}/read', 'PATCH');
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const unreadCount = mockNotifications.filter(n => !n.isRead).length;
+
+  const unreadCount = notifData?.stats?.unread || 0;
+  const notifications = notifData?.notifications || [];
+
+  const handleMarkAsRead = async (_notificationId: string) => {
+    try {
+      await markAsRead();
+      addToast({
+        type: 'success',
+        title: '알림을 읽음 처리했습니다',
+      });
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: '알림 처리 실패',
+        message: err instanceof Error ? err.message : '다시 시도해주세요',
+      });
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
@@ -66,13 +106,27 @@ export function Header() {
           {showNotifications && (
             <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
               <div className="p-3 border-b border-gray-100 font-semibold text-sm">알림</div>
-              {mockNotifications.map((noti) => (
-                <div key={noti.id} className={cn('p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer', !noti.isRead && 'bg-orange-50/50')}>
-                  <div className="text-sm font-medium text-gray-900">{noti.title}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{noti.body}</div>
-                  <div className="text-xs text-gray-400 mt-1">{new Date(noti.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+              {notifLoading ? (
+                <div className="p-4 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                 </div>
-              ))}
+              ) : notifications.length > 0 ? (
+                notifications.map((noti) => (
+                  <div
+                    key={noti.id}
+                    onClick={() => handleMarkAsRead(noti.id)}
+                    className={cn('p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors', !noti.isRead && 'bg-orange-50/50')}
+                  >
+                    <div className="text-sm font-medium text-gray-900">{noti.title}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{noti.content || noti.body}</div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(noti.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-gray-400">알림이 없습니다</div>
+              )}
             </div>
           )}
         </div>

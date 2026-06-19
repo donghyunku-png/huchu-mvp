@@ -56,10 +56,12 @@ export const users = pgTable('users', {
   companyId: uuid('company_id').references(() => companies.id).notNull(),
   departmentId: uuid('department_id').references(() => departments.id),
   email: varchar('email', { length: 100 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),
   name: varchar('name', { length: 50 }).notNull(),
   phone: varchar('phone', { length: 20 }),
   profileImageUrl: varchar('profile_image_url', { length: 500 }),
+  authProvider: varchar('auth_provider', { length: 30 }),
+  authProviderId: varchar('auth_provider_id', { length: 255 }),
   role: varchar('role', { length: 30 }).default('employee').notNull(),
   // company_owner, company_admin, dept_head, team_lead, employee, hr, finance, sales, executive
   positionTitle: varchar('position_title', { length: 50 }), // 직함: 대리, 과장, 부장 등

@@ -1,27 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useToastStore } from '@/stores/toast-store';
 import { api } from '@/lib/api-client';
 import { Building2, User, Shield } from 'lucide-react';
+import type { Company, User as AppUser } from '@/types';
 
 export default function SettingsPage() {
-  const { user, company } = useAuthStore();
+  const { user, company, updateCompany, updateUser } = useAuthStore();
   const addToast = useToastStore(s => s.addToast);
   const [loading, setLoading] = useState(false);
   const [companyForm, setCompanyForm] = useState({
     name: company?.name || '',
     businessNumber: company?.businessNumber || '',
     representative: company?.representative || '',
+    phone: company?.phone || '',
     industry: company?.industry || '',
     address: company?.address || '',
+    employeeCount: String(company?.employeeCount || 1),
   });
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
-    department: user?.department || '',
     position: user?.position || '',
   });
+
+  useEffect(() => {
+    if (!company) return;
+    setCompanyForm({
+      name: company.name || '',
+      businessNumber: company.businessNumber || '',
+      representative: company.representative || '',
+      phone: company.phone || '',
+      industry: company.industry || '',
+      address: company.address || '',
+      employeeCount: String(company.employeeCount || 1),
+    });
+  }, [company]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      name: user.name || '',
+      position: user.position || '',
+    });
+  }, [user]);
 
   const handleCompanyChange = (field: keyof typeof companyForm, value: string) => {
     setCompanyForm(prev => ({ ...prev, [field]: value }));
@@ -34,8 +57,14 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await api.post('/api/company/settings', companyForm);
-      await api.post('/api/user/profile', profileForm);
+      const companyResult = await api.post<{ company: Company }>('/api/company/settings', {
+        ...companyForm,
+        employeeCount: Number(companyForm.employeeCount) || 1,
+      });
+      const profileResult = await api.post<{ user: AppUser }>('/api/user/profile', profileForm);
+
+      updateCompany(companyResult.company);
+      updateUser(profileResult.user);
       addToast({
         type: 'success',
         title: '설정이 저장되었습니다.',
@@ -89,11 +118,30 @@ export default function SettingsPage() {
               />
             </div>
             <div>
+              <label className="block text-sm text-gray-500 mb-1">연락처</label>
+              <input
+                type="tel"
+                value={companyForm.phone}
+                onChange={(e) => handleCompanyChange('phone', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+            <div>
               <label className="block text-sm text-gray-500 mb-1">업종</label>
               <input
                 type="text"
                 value={companyForm.industry}
                 onChange={(e) => handleCompanyChange('industry', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">직원 수</label>
+              <input
+                type="number"
+                min="1"
+                value={companyForm.employeeCount}
+                onChange={(e) => handleCompanyChange('employeeCount', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
@@ -143,9 +191,9 @@ export default function SettingsPage() {
               <label className="block text-sm text-gray-500 mb-1">부서</label>
               <input
                 type="text"
-                value={profileForm.department}
-                onChange={(e) => handleProfileChange('department', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                value={user?.department || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
+                readOnly
               />
             </div>
             <div>
@@ -166,7 +214,9 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-200">
             <div>
               <p className="font-semibold text-orange-700">{company?.plan?.toUpperCase() || 'BASIC'} 플랜</p>
-              <p className="text-sm text-orange-600 mt-0.5">직원 20명 / AI 토큰 10,000/월 / 50GB 저장</p>
+              <p className="text-sm text-orange-600 mt-0.5">
+                직원 {company?.employeeCount ?? 0}명 / AI 토큰 {company?.aiTokenLimit?.toLocaleString('ko-KR') ?? 0}/월 / {company?.storageLimitGb ?? 0}GB 저장
+              </p>
             </div>
             <button className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">업그레이드</button>
           </div>

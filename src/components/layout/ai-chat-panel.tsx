@@ -24,41 +24,13 @@ interface AIConversation {
 export function AIChatPanel() {
   const { aiChatOpen, toggleAiChat } = useUIStore();
   const [message, setMessage] = useState('');
-  const [selectedConv, setSelectedConv] = useState<string>('conv-1');
+  const [selectedConv, setSelectedConv] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Local state for conversations and messages
-  const [conversations, setConversations] = useState<AIConversation[]>([
-    {
-      id: 'conv-1',
-      title: '이번 달 경비 현황',
-      updatedAt: new Date(),
-    },
-    {
-      id: 'conv-2',
-      title: '일정 확인',
-      updatedAt: new Date(Date.now() - 86400000),
-    },
-    {
-      id: 'conv-3',
-      title: '연차 잔여일수',
-      updatedAt: new Date(Date.now() - 172800000),
-    },
-  ]);
-
-  const [messages, setMessages] = useState<AIMessage[]>([
-    {
-      id: 'msg-1',
-      conversationId: 'conv-1',
-      content: '안녕하세요! 후추 AI 비서입니다. 업무에 관해 무엇이든 물어보세요.',
-      role: 'assistant',
-      model: 'gpt-4',
-      tokensUsed: 50,
-      timestamp: new Date(Date.now() - 3600000),
-    },
-  ]);
+  const [conversations, setConversations] = useState<AIConversation[]>([]);
+  const [messages, setMessages] = useState<AIMessage[]>([]);
 
   const currentMessages = messages.filter(m => m.conversationId === selectedConv);
 
@@ -72,10 +44,20 @@ export function AIChatPanel() {
 
   const handleSendMessage = async () => {
     if (!message.trim() || aiLoading) return;
+    const conversationId = selectedConv || `conv-${Date.now()}`;
+
+    if (!selectedConv) {
+      setSelectedConv(conversationId);
+      setConversations(prev => [{
+        id: conversationId,
+        title: message.trim().slice(0, 24),
+        updatedAt: new Date(),
+      }, ...prev]);
+    }
 
     const userMessage: AIMessage = {
       id: `msg-${Date.now()}`,
-      conversationId: selectedConv,
+      conversationId,
       content: message,
       role: 'user',
       timestamp: new Date(),
@@ -85,15 +67,12 @@ export function AIChatPanel() {
     setMessage('');
     setAiLoading(true);
 
-    // Simulate AI response with timeout
     setTimeout(() => {
       const aiMessage: AIMessage = {
         id: `msg-${Date.now() + 1}`,
-        conversationId: selectedConv,
-        content: '요청하신 내용을 처리하고 있습니다. 잠시만 기다려주세요.',
+        conversationId,
+        content: 'AI 응답 기능은 API 연결 후 사용할 수 있습니다. 지금은 요청 내용을 대화에 기록했습니다.',
         role: 'assistant',
-        model: 'gpt-4',
-        tokensUsed: 120,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
@@ -110,15 +89,6 @@ export function AIChatPanel() {
     };
     setConversations(prev => [newConv, ...prev]);
     setSelectedConv(newConvId);
-    setMessages(prev => [...prev, {
-      id: `msg-${Date.now()}`,
-      conversationId: newConvId,
-      content: '안녕하세요! 후추 AI 비서입니다. 업무에 관해 무엇이든 물어보세요.',
-      role: 'assistant',
-      model: 'gpt-4',
-      tokensUsed: 50,
-      timestamp: new Date(),
-    }]);
   };
 
   const handleQuickQuestion = (question: string) => {
@@ -158,21 +128,25 @@ export function AIChatPanel() {
       {showHistory ? (
         <div className="flex-1 overflow-y-auto">
           <div className="p-3 text-xs font-semibold text-gray-400">최근 대화</div>
-          {conversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => { setSelectedConv(conv.id); setShowHistory(false); }}
-              className={cn(
-                'w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50 transition-colors',
-                selectedConv === conv.id && 'bg-orange-50'
-              )}
-            >
-              <div className="text-sm font-medium text-gray-900">{conv.title}</div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                {conv.updatedAt.toLocaleDateString('ko-KR')}
-              </div>
-            </button>
-          ))}
+          {conversations.length > 0 ? (
+            conversations.map(conv => (
+              <button
+                key={conv.id}
+                onClick={() => { setSelectedConv(conv.id); setShowHistory(false); }}
+                className={cn(
+                  'w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50 transition-colors',
+                  selectedConv === conv.id && 'bg-orange-50'
+                )}
+              >
+                <div className="text-sm font-medium text-gray-900">{conv.title}</div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  {conv.updatedAt.toLocaleDateString('ko-KR')}
+                </div>
+              </button>
+            ))
+          ) : (
+            <p className="px-4 py-6 text-sm text-gray-400 text-center">대화 기록이 없습니다</p>
+          )}
         </div>
       ) : (
         <>
@@ -184,7 +158,7 @@ export function AIChatPanel() {
                 <p className="text-sm text-gray-500">안녕하세요! 후추 AI 비서입니다.</p>
                 <p className="text-xs text-gray-400 mt-1">업무에 관해 무엇이든 물어보세요.</p>
                 <div className="mt-4 space-y-2">
-                  {['이번 달 경비 현황 알려줘', '내일 일정 확인해줘', '박영업 연차 잔여일수는?'].map(q => (
+                  {['이번 달 경비 현황 알려줘', '내일 일정 확인해줘', '직원 연차 현황 조회'].map(q => (
                     <button
                       key={q}
                       onClick={() => handleQuickQuestion(q)}

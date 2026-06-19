@@ -80,7 +80,6 @@ export function Header() {
           title="메신저"
         >
           <MessageSquare className="w-5 h-5" />
-          <span className="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">8</span>
         </button>
 
         {/* AI Chat toggle */}
@@ -153,7 +152,7 @@ export function Header() {
                 <User className="w-4 h-4" /> 프로필 설정
               </button>
               <button
-                onClick={logout}
+                onClick={() => void logout()}
                 className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" /> 로그아웃

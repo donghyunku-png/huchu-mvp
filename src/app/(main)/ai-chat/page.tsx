@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useAuthStore } from '@/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { Bot, Send, Plus, Search, Trash2, Clock, Sparkles, FileText, Calculator, Calendar, Users } from 'lucide-react';
 
@@ -27,32 +28,11 @@ const quickActions = [
 ];
 
 export default function AIChatPage() {
-  // Local state for conversations and messages (no real AI API)
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: 'ai-conv-1',
-      title: '프로젝트 진행 상황',
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'ai-conv-2',
-      title: '회의 일정 조율',
-      updatedAt: new Date(Date.now() - 86400000).toISOString()
-    }
-  ]);
+  const { user, company } = useAuthStore();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'msg-1',
-      conversationId: 'ai-conv-1',
-      role: 'assistant',
-      content: '안녕하세요! 무엇을 도와드릴까요?',
-      model: 'GPT-4o',
-      tokensUsed: 12
-    }
-  ]);
-
-  const [selectedConv, setSelectedConv] = useState<string>('ai-conv-1');
+  const [selectedConv, setSelectedConv] = useState<string>('');
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -71,10 +51,20 @@ export default function AIChatPage() {
 
   const handleSend = async () => {
     if (!message.trim()) return;
+    const conversationId = selectedConv || `ai-conv-${Date.now()}`;
+
+    if (!selectedConv) {
+      setSelectedConv(conversationId);
+      setConversations(prev => [{
+        id: conversationId,
+        title: message.trim().slice(0, 24),
+        updatedAt: new Date().toISOString()
+      }, ...prev]);
+    }
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
-      conversationId: selectedConv,
+      conversationId,
       role: 'user',
       content: message
     };
@@ -83,15 +73,12 @@ export default function AIChatPage() {
     setMessage('');
     setIsThinking(true);
 
-    // Simulate AI response after 1 second
     setTimeout(() => {
       const aiMessage: Message = {
         id: `msg-${Date.now() + 1}`,
-        conversationId: selectedConv,
+        conversationId,
         role: 'assistant',
-        content: '이 기능은 현재 로컬 상태로 작동하고 있습니다. 실제 AI 응답이 표시됩니다.',
-        model: 'GPT-4o',
-        tokensUsed: 45
+        content: 'AI 응답 기능은 API 연결 후 사용할 수 있습니다. 지금은 요청 내용을 대화에 기록했습니다.'
       };
       setMessages(prev => [...prev, aiMessage]);
       setIsThinking(false);
@@ -111,7 +98,7 @@ export default function AIChatPage() {
   const handleDeleteConversation = (id: string) => {
     setConversations(prev => prev.filter(c => c.id !== id));
     if (selectedConv === id) {
-      setSelectedConv(conversations[0]?.id || '');
+      setSelectedConv(conversations.find(c => c.id !== id)?.id || '');
     }
   };
 
@@ -145,40 +132,44 @@ export default function AIChatPage() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <div className="px-3 py-2 text-xs font-semibold text-gray-400">오늘</div>
-          {conversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => setSelectedConv(conv.id)}
-              className={cn(
-                'w-full px-3 py-3 flex items-start gap-3 text-left transition-colors group',
-                selectedConv === conv.id ? 'bg-orange-50 border-r-2 border-orange-500' : 'hover:bg-gray-50'
-              )}
-            >
-              <div className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                selectedConv === conv.id ? 'bg-orange-100' : 'bg-gray-100'
-              )}>
-                <Bot className={cn('w-4 h-4', selectedConv === conv.id ? 'text-orange-600' : 'text-gray-500')} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={cn('text-sm font-medium truncate', selectedConv === conv.id ? 'text-orange-700' : 'text-gray-900')}>{conv.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {new Date(conv.updatedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                </p>
-              </div>
+          <div className="px-3 py-2 text-xs font-semibold text-gray-400">대화</div>
+          {conversations.length > 0 ? (
+            conversations.map(conv => (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteConversation(conv.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-400"
+                key={conv.id}
+                onClick={() => setSelectedConv(conv.id)}
+                className={cn(
+                  'w-full px-3 py-3 flex items-start gap-3 text-left transition-colors group',
+                  selectedConv === conv.id ? 'bg-orange-50 border-r-2 border-orange-500' : 'hover:bg-gray-50'
+                )}
               >
-                <Trash2 className="w-3 h-3" />
+                <div className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                  selectedConv === conv.id ? 'bg-orange-100' : 'bg-gray-100'
+                )}>
+                  <Bot className={cn('w-4 h-4', selectedConv === conv.id ? 'text-orange-600' : 'text-gray-500')} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-sm font-medium truncate', selectedConv === conv.id ? 'text-orange-700' : 'text-gray-900')}>{conv.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(conv.updatedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConversation(conv.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-400"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </button>
-            </button>
-          ))}
+            ))
+          ) : (
+            <p className="px-4 py-6 text-sm text-gray-400 text-center">대화 기록이 없습니다</p>
+          )}
         </div>
       </div>
 
@@ -192,11 +183,11 @@ export default function AIChatPage() {
             </div>
             <div>
               <h3 className="font-semibold text-sm text-gray-900">{selectedConvData?.title || '새 대화'}</h3>
-              <p className="text-xs text-gray-400">AI 비서 · GPT-4o</p>
+              <p className="text-xs text-gray-400">AI 비서</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">토큰: 425/10,000</span>
+            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">토큰 한도: {company?.aiTokenLimit?.toLocaleString('ko-KR') ?? 0}</span>
           </div>
         </div>
 
@@ -240,16 +231,16 @@ export default function AIChatPage() {
                       : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
                   )}>
                     <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
-                    {msg.role === 'assistant' && (
+                    {msg.role === 'assistant' && (msg.model || msg.tokensUsed) && (
                       <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100">
-                        <span className="text-[10px] text-gray-400">{msg.model}</span>
-                        <span className="text-[10px] text-gray-400">{msg.tokensUsed} tokens</span>
+                        {msg.model && <span className="text-[10px] text-gray-400">{msg.model}</span>}
+                        {msg.tokensUsed && <span className="text-[10px] text-gray-400">{msg.tokensUsed} tokens</span>}
                       </div>
                     )}
                   </div>
                   {msg.role === 'user' && (
                     <div className="w-9 h-9 rounded-xl bg-gray-200 flex items-center justify-center flex-shrink-0 text-sm font-bold text-gray-600">
-                      김
+                      {user?.name?.charAt(0) || 'U'}
                     </div>
                   )}
                 </div>

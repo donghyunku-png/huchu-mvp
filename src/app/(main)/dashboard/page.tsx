@@ -7,7 +7,7 @@ import { useToastStore } from '@/stores/toast-store';
 import { formatCurrency, cn } from '@/lib/utils';
 import {
   Clock, CheckCircle2, Calendar, Star, Bell,
-  TrendingUp, Users, DollarSign, BarChart3,
+  Users, DollarSign, BarChart3,
   Square, ChevronRight, Loader2
 } from 'lucide-react';
 
@@ -169,7 +169,6 @@ export default function DashboardPage() {
                 <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                   <Users className="w-5 h-5 text-blue-600" />
                 </div>
-                <span className="text-xs text-green-600 font-medium flex items-center gap-0.5"><TrendingUp className="w-3 h-3" />+2</span>
               </div>
               <div className="mt-3">
                 <p className="text-2xl font-bold text-gray-900">{companyStats.totalEmployees}</p>
@@ -195,7 +194,6 @@ export default function DashboardPage() {
                 <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-orange-600" />
                 </div>
-                <span className="text-xs text-green-600 font-medium flex items-center gap-0.5"><TrendingUp className="w-3 h-3" />12%</span>
               </div>
               <div className="mt-3">
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(0)}</p>

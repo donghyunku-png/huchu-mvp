@@ -8,6 +8,7 @@ import { getDashboardWidgets, getNavigationItems } from '@/lib/auth/rbac';
 import { db } from '@/db';
 import { companies } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { toCompanyPayload, toUserPayload } from '@/lib/auth/app-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,49 +21,29 @@ export async function GET() {
 
     // DB에서 회사의 활성 모듈 조회
     const companyData = await db
-      .select({ activeModules: companies.activeModules })
+      .select()
       .from(companies)
       .where(eq(companies.id, user.companyId))
       .limit(1);
 
-    const activeModules = (companyData[0]?.activeModules as string[]) || user.activeModules || ['M01', 'M02', 'M03', 'M04', 'M12', 'M15'];
+    const company = companyData[0];
+    if (!company) {
+      return error('회사 정보를 찾을 수 없습니다.', 404);
+    }
+
+    const activeModules = (company.activeModules as string[]) || user.activeModules;
 
     return success({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        positionLevel: user.positionLevel,
-        companyId: user.companyId,
-        departmentId: user.departmentId,
-        profileImageUrl: user.profileImageUrl,
-      },
+      user: toUserPayload({
+        ...user,
+        status: 'active',
+      }),
+      company: toCompanyPayload(company),
       dashboardWidgets: getDashboardWidgets(user.role),
       navigationItems: getNavigationItems(user.role, activeModules),
       activeModules,
     });
   } catch (err) {
-    const user = await getCurrentUser();
-    if (user) {
-      console.warn('GET /api/auth/me DB unavailable; returning signed session data.');
-      return success({
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          positionLevel: user.positionLevel,
-          companyId: user.companyId,
-          departmentId: user.departmentId,
-          profileImageUrl: user.profileImageUrl,
-        },
-        dashboardWidgets: getDashboardWidgets(user.role),
-        navigationItems: getNavigationItems(user.role, user.activeModules),
-        activeModules: user.activeModules,
-      });
-    }
-
     console.error('GET /api/auth/me error:', err);
     return error('서버 오류가 발생했습니다.', 500);
   }

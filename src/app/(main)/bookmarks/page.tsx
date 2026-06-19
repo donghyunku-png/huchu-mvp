@@ -19,45 +19,10 @@ interface BookmarkFolder {
 }
 
 export default function BookmarksPage() {
-  // Local state with sample data
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([
-    {
-      id: 'bm-1',
-      title: 'Google Drive',
-      url: 'https://drive.google.com',
-      icon: '📄',
-      type: 'external',
-      folderId: 'folder-1'
-    },
-    {
-      id: 'bm-2',
-      title: 'GitHub',
-      url: 'https://github.com',
-      icon: '🐙',
-      type: 'external',
-      folderId: 'folder-1'
-    },
-    {
-      id: 'bm-3',
-      title: '내부 문서',
-      url: '/docs/internal',
-      icon: '📋',
-      type: 'internal',
-      folderId: 'folder-2'
-    },
-    {
-      id: 'bm-4',
-      title: '회사 사이트',
-      url: 'https://company.example.com',
-      icon: '🌐',
-      type: 'external',
-      folderId: 'folder-2'
-    }
-  ]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   const [folders] = useState<BookmarkFolder[]>([
-    { id: 'folder-1', name: '작업도구' },
-    { id: 'folder-2', name: '내부문서' }
+    { id: 'folder-1', name: '기본' },
   ]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,9 +42,9 @@ export default function BookmarksPage() {
     const newBookmark: Bookmark = {
       id: `bm-${Date.now()}`,
       title: '새 북마크',
-      url: 'https://example.com',
+      url: '',
       icon: '🔗',
-      type: 'external',
+      type: 'internal',
       folderId: selectedFolder || 'folder-1'
     };
     setBookmarks(prev => [...prev, newBookmark]);
@@ -155,7 +120,7 @@ export default function BookmarksPage() {
                     <p className="text-xs text-gray-400 truncate">{bm.url}</p>
                   </div>
                   <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                    {bm.type === 'external' && (
+                    {bm.type === 'external' && bm.url && (
                       <a
                         href={bm.url}
                         target="_blank"

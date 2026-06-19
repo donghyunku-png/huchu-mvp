@@ -6,6 +6,8 @@ import { db } from '@/db';
 import { users, departments } from '@/db/schema';
 import { eq, and, type SQL } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return withScopedAccess('organization', 'read', async (user, scope) => {
     try {

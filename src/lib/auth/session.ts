@@ -6,12 +6,16 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { UserContext } from './rbac';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'huchu-dev-secret-key-change-in-production'
-);
-
 const SESSION_COOKIE_NAME = 'huchu_session';
 const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 days
+
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET or NEXTAUTH_SECRET is required for Huchu sessions.');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface SessionPayload extends UserContext {
   name: string;
@@ -30,7 +34,7 @@ export async function createToken(payload: Omit<SessionPayload, 'exp' | 'iat'>):
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 /**
@@ -38,7 +42,7 @@ export async function createToken(payload: Omit<SessionPayload, 'exp' | 'iat'>):
  */
 export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as SessionPayload;
   } catch {
     return null;

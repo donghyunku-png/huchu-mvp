@@ -24,7 +24,7 @@ export interface User {
   departmentId?: string;
   department?: string;
   position?: string;
-  role: 'super_admin' | 'company_admin' | 'dept_admin' | 'team_lead' | 'employee' | 'hr' | 'finance' | 'sales' | 'executive';
+  role: 'super_admin' | 'company_owner' | 'company_admin' | 'dept_head' | 'dept_admin' | 'team_lead' | 'employee' | 'hr' | 'finance' | 'sales' | 'executive';
   status: 'active' | 'inactive' | 'invited';
   hireDate?: string;
 }

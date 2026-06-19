@@ -7,12 +7,12 @@ import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import {
   LayoutDashboard, MessageSquare, Bot, Users, Calendar,
-  BarChart3, Star, Settings, ChevronLeft, ChevronRight
+  BarChart3, Star, Settings, ChevronLeft, ChevronRight, Plug
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-  { href: '/messenger', icon: MessageSquare, label: '메신저', badge: 8 },
+  { href: '/messenger', icon: MessageSquare, label: '메신저', badge: 0 },
   { href: '/ai-chat', icon: Bot, label: 'AI 채팅' },
   { href: '/hr/organization', icon: Users, label: '인사/근태', children: [
     { href: '/hr/organization', label: '조직도' },
@@ -25,7 +25,15 @@ const navItems = [
     { href: '/crm/pipeline', label: '파이프라인' },
   ]},
   { href: '/bookmarks', icon: Star, label: '북마크' },
-  { href: '/settings', icon: Settings, label: '설정' },
+  {
+    href: '/settings',
+    icon: Settings,
+    label: '설정',
+    children: [
+      { href: '/settings', label: '기본 설정' },
+      { href: '/settings/integrations', label: '외부 연동', icon: Plug },
+    ]
+  },
 ];
 
 export function Sidebar() {
@@ -82,7 +90,7 @@ export function Sidebar() {
                 {sidebarOpen && (
                   <>
                     <span className="flex-1">{item.label}</span>
-                    {item.badge && (
+                    {item.badge !== undefined && item.badge > 0 && (
                       <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
                         {item.badge}
                       </span>
@@ -100,13 +108,14 @@ export function Sidebar() {
                       key={child.href}
                       href={child.href}
                       className={cn(
-                        'block px-3 py-1.5 text-sm rounded-md transition-colors',
+                        'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors',
                         pathname === child.href
                           ? 'text-orange-700 font-medium'
                           : 'text-gray-500 hover:text-gray-700'
                       )}
                     >
-                      {child.label}
+                      {child.icon && <child.icon className="w-4 h-4" />}
+                      <span>{child.label}</span>
                     </Link>
                   ))}
                 </div>

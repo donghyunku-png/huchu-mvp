@@ -7,16 +7,32 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MessengerPanel } from '@/components/layout/messenger-panel';
 import { AIChatPanel } from '@/components/layout/ai-chat-panel';
+import ToastContainer from '@/components/ui/Toast';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading, initFromStorage } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    initFromStorage();
+  }, [initFromStorage]);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-4xl mb-3 animate-bounce">🌶️</div>
+          <p className="text-sm text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) return null;
 
@@ -31,6 +47,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
       <MessengerPanel />
       <AIChatPanel />
+      <ToastContainer />
     </div>
   );
 }

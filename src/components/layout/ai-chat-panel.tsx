@@ -1,18 +1,106 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUIStore } from '@/stores/ui-store';
-import { mockAIMessages, mockAIConversations } from '@/data/mock-data';
 import { X, Send, Plus, Bot, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface AIMessage {
+  id: string;
+  conversationId: string;
+  content: string;
+  role: 'user' | 'assistant';
+  model?: string;
+  tokensUsed?: number;
+  timestamp: Date;
+}
+
+interface AIConversation {
+  id: string;
+  title: string;
+  updatedAt: Date;
+}
 
 export function AIChatPanel() {
   const { aiChatOpen, toggleAiChat } = useUIStore();
   const [message, setMessage] = useState('');
-  const [selectedConv, setSelectedConv] = useState<string>('ai-conv-1');
+  const [selectedConv, setSelectedConv] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messages = mockAIMessages.filter(m => m.conversationId === selectedConv);
+  const [conversations, setConversations] = useState<AIConversation[]>([]);
+  const [messages, setMessages] = useState<AIMessage[]>([]);
+
+  const currentMessages = messages.filter(m => m.conversationId === selectedConv);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [currentMessages]);
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || aiLoading) return;
+    const conversationId = selectedConv || `conv-${Date.now()}`;
+
+    if (!selectedConv) {
+      setSelectedConv(conversationId);
+      setConversations(prev => [{
+        id: conversationId,
+        title: message.trim().slice(0, 24),
+        updatedAt: new Date(),
+      }, ...prev]);
+    }
+
+    const userMessage: AIMessage = {
+      id: `msg-${Date.now()}`,
+      conversationId,
+      content: message,
+      role: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setAiLoading(true);
+
+    setTimeout(() => {
+      const aiMessage: AIMessage = {
+        id: `msg-${Date.now() + 1}`,
+        conversationId,
+        content: 'AI 응답 기능은 API 연결 후 사용할 수 있습니다. 지금은 요청 내용을 대화에 기록했습니다.',
+        role: 'assistant',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      setAiLoading(false);
+    }, 800);
+  };
+
+  const handleNewConversation = () => {
+    const newConvId = `conv-${Date.now()}`;
+    const newConv: AIConversation = {
+      id: newConvId,
+      title: '새로운 대화',
+      updatedAt: new Date(),
+    };
+    setConversations(prev => [newConv, ...prev]);
+    setSelectedConv(newConvId);
+  };
+
+  const handleQuickQuestion = (question: string) => {
+    setMessage(question);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   if (!aiChatOpen) return null;
 
@@ -25,13 +113,13 @@ export function AIChatPanel() {
           <span className="font-semibold">AI 비서</span>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowHistory(!showHistory)} className="p-1.5 text-white/80 hover:text-white rounded">
+          <button onClick={() => setShowHistory(!showHistory)} className="p-1.5 text-white/80 hover:text-white rounded transition-colors">
             <History className="w-4 h-4" />
           </button>
-          <button className="p-1.5 text-white/80 hover:text-white rounded">
+          <button onClick={handleNewConversation} className="p-1.5 text-white/80 hover:text-white rounded transition-colors">
             <Plus className="w-4 h-4" />
           </button>
-          <button onClick={toggleAiChat} className="p-1.5 text-white/80 hover:text-white rounded">
+          <button onClick={toggleAiChat} className="p-1.5 text-white/80 hover:text-white rounded transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -40,41 +128,49 @@ export function AIChatPanel() {
       {showHistory ? (
         <div className="flex-1 overflow-y-auto">
           <div className="p-3 text-xs font-semibold text-gray-400">최근 대화</div>
-          {mockAIConversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => { setSelectedConv(conv.id); setShowHistory(false); }}
-              className={cn(
-                'w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50',
-                selectedConv === conv.id && 'bg-orange-50'
-              )}
-            >
-              <div className="text-sm font-medium text-gray-900">{conv.title}</div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                {new Date(conv.updatedAt).toLocaleDateString('ko-KR')}
-              </div>
-            </button>
-          ))}
+          {conversations.length > 0 ? (
+            conversations.map(conv => (
+              <button
+                key={conv.id}
+                onClick={() => { setSelectedConv(conv.id); setShowHistory(false); }}
+                className={cn(
+                  'w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50 transition-colors',
+                  selectedConv === conv.id && 'bg-orange-50'
+                )}
+              >
+                <div className="text-sm font-medium text-gray-900">{conv.title}</div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  {conv.updatedAt.toLocaleDateString('ko-KR')}
+                </div>
+              </button>
+            ))
+          ) : (
+            <p className="px-4 py-6 text-sm text-gray-400 text-center">대화 기록이 없습니다</p>
+          )}
         </div>
       ) : (
         <>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 && (
+            {currentMessages.length === 0 && (
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-orange-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-500">안녕하세요! 후추 AI 비서입니다.</p>
                 <p className="text-xs text-gray-400 mt-1">업무에 관해 무엇이든 물어보세요.</p>
                 <div className="mt-4 space-y-2">
-                  {['이번 달 경비 현황 알려줘', '내일 일정 확인해줘', '박영업 연차 잔여일수는?'].map(q => (
-                    <button key={q} className="block mx-auto px-3 py-1.5 bg-orange-50 text-orange-700 text-xs rounded-full hover:bg-orange-100">
+                  {['이번 달 경비 현황 알려줘', '내일 일정 확인해줘', '직원 연차 현황 조회'].map(q => (
+                    <button
+                      key={q}
+                      onClick={() => handleQuickQuestion(q)}
+                      className="block mx-auto px-3 py-1.5 bg-orange-50 text-orange-700 text-xs rounded-full hover:bg-orange-100 transition-colors"
+                    >
                       {q}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            {messages.map(msg => (
+            {currentMessages.map(msg => (
               <div key={msg.id} className={cn('flex gap-3', msg.role === 'user' && 'justify-end')}>
                 {msg.role === 'assistant' && (
                   <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
@@ -94,6 +190,21 @@ export function AIChatPanel() {
                 </div>
               </div>
             ))}
+            {aiLoading && (
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm bg-gray-100 text-gray-800 rounded-bl-md">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -103,11 +214,15 @@ export function AIChatPanel() {
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="AI에게 질문하세요..."
                 className="flex-1 px-4 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                onKeyDown={(e) => e.key === 'Enter' && message.trim() && setMessage('')}
               />
-              <button className="p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors">
+              <button
+                onClick={handleSendMessage}
+                disabled={aiLoading || !message.trim()}
+                className="p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Send className="w-4 h-4" />
               </button>
             </div>

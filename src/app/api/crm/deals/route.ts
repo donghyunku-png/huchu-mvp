@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { deals, clients, users } from '@/db/schema';
 import { eq, and, type SQL } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 // 딜 스테이지 파이프라인
 const DEAL_STAGES = [
   { stage: 'lead', label: '리드', order: 1 },

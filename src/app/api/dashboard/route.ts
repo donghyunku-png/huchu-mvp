@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { users, departments, attendances, vacationBalances, tasks } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return withAuth(async (user) => {
     try {
@@ -51,11 +53,13 @@ export async function GET() {
             )
           );
 
+        const totalEmployees = Number(totalEmployeesResult[0]?.count || 0);
+        const todayAttendance = Number(todayAttendanceResult[0]?.count || 0);
         const companyStats = {
-          totalEmployees: Number(totalEmployeesResult[0]?.count || 0),
+          totalEmployees,
           departmentCount: Number(departmentCountResult[0]?.count || 0),
-          todayAttendance: Number(todayAttendanceResult[0]?.count || 0),
-          attendanceRate: 87.5, // 계산 필요
+          todayAttendance,
+          attendanceRate: totalEmployees > 0 ? Math.round((todayAttendance / totalEmployees) * 1000) / 10 : 0,
           pendingApprovals: 0,
         };
 
@@ -86,10 +90,12 @@ export async function GET() {
               )
             );
 
+          const memberCount = Number(deptMembersResult[0]?.count || 0);
+          const todayAttendance = Number(deptTodayAttendanceResult[0]?.count || 0);
           const departmentStats = {
-            memberCount: Number(deptMembersResult[0]?.count || 0),
-            todayAttendance: Number(deptTodayAttendanceResult[0]?.count || 0),
-            attendanceRate: 85,
+            memberCount,
+            todayAttendance,
+            attendanceRate: memberCount > 0 ? Math.round((todayAttendance / memberCount) * 1000) / 10 : 0,
           };
 
           dashboardData = {

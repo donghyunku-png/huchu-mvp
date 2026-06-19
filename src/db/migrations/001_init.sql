@@ -58,10 +58,12 @@ CREATE TABLE users (
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   department_id UUID REFERENCES departments(id),
   email VARCHAR(100) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
   name VARCHAR(50) NOT NULL,
   phone VARCHAR(20),
   profile_image_url VARCHAR(500),
+  auth_provider VARCHAR(30),
+  auth_provider_id VARCHAR(255),
   role VARCHAR(30) NOT NULL DEFAULT 'employee',
   position_title VARCHAR(50),
   position_level INTEGER DEFAULT 1,
@@ -76,6 +78,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_company ON users(company_id);
 CREATE INDEX idx_users_department ON users(department_id);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_auth_provider ON users(auth_provider, auth_provider_id);
 
 -- departments.head_user_id FK (deferred due to circular reference)
 ALTER TABLE departments ADD CONSTRAINT fk_dept_head FOREIGN KEY (head_user_id) REFERENCES users(id);

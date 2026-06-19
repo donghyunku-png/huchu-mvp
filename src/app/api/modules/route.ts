@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { companies } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 // 전체 모듈 카탈로그
 const MODULE_CATALOG = [
   // 코어 서비스 (항상 활성화)

@@ -8,6 +8,8 @@ import { db } from '@/db';
 import { chatRooms, chatRoomMembers, messages } from '@/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return withAuth(async (user) => {
     try {
